@@ -1,0 +1,38 @@
+# Uso local para probar las imágenes antes de desplegar en Easypanel:
+#   docker compose up --build
+# La API queda en http://localhost:4000 y el web en http://localhost:8080.
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    ports:
+      - "4000:4000"
+    environment:
+      DATABASE_URL: "file:/data/app.db"
+      PORT: "4000"
+      JWT_SECRET: "change-me-access-secret"
+      JWT_REFRESH_SECRET: "change-me-refresh-secret"
+      HIGH_EXPENSE_THRESHOLD: "500"
+      N8N_WEBHOOK_URL: "https://n8n-n8n.d3xtpr.easypanel.host/webhook/1e8263b0-7898-46f6-a2ea-8963d45e0e5b"
+      CORS_ORIGIN: "http://localhost:8080"
+      OWNER_EMAIL: "israelmayalara@gmail.com"
+      OWNER_NAME: "Israel"
+      OWNER_PASSWORD: "change-me-strong-password"
+    volumes:
+      - api_data:/data
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        VITE_API_URL: "http://localhost:4000"
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+
+volumes:
+  api_data:

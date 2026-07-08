@@ -7,9 +7,12 @@
     "packages/*"
   ],
   "scripts": {
+    "prepare": "npm run build:shared",
     "dev:api": "npm run dev -w apps/api",
     "dev:web": "npm run dev -w apps/web",
     "dev:mobile": "npm run start -w apps/mobile",
-    "build:shared": "npm run build -w packages/shared"
+    "build:shared": "npm run build -w packages/shared",
+    "build:api": "npm run build:shared && npm run build -w apps/api",
+    "build:web": "npm run build:shared && npm run build -w apps/web"
   }
 }
