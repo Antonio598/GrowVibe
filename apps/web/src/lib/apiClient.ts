@@ -16,7 +16,9 @@ const localStorageTokenStorage: TokenStorage = {
   },
 };
 
-export const apiBaseUrl = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
+// Vacío = mismo origen (rutas relativas /api/*). El servidor Express sirve
+// tanto la API como este frontend, y en dev Vite proxea /api a :4000.
+export const apiBaseUrl = import.meta.env.VITE_API_URL ?? "";
 
 export const api = createApiClient({ baseUrl: apiBaseUrl, tokenStorage: localStorageTokenStorage });
 
