@@ -1,0 +1,10 @@
+import { createApp } from "./app";
+import { env } from "./config/env";
+import { startNotificationCron } from "./services/cron";
+
+const app = createApp();
+
+app.listen(env.port, () => {
+  console.log(`API escuchando en http://localhost:${env.port}`);
+  startNotificationCron();
+});

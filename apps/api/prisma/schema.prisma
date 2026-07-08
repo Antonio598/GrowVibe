@@ -1,0 +1,178 @@
+// SQLite no soporta enum nativo en Prisma: los campos tipo-enum se guardan
+// como String y se validan con Zod en la capa de app. Al migrar a Postgres,
+// convertir esos campos a `enum` real y los campos JSON-como-String
+// (metadata, measurements, generatedPlan) a `Json` nativo.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Profile {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tasks         Task[]
+  transactions  Transaction[]
+  categories    Category[]
+  groupsCreated Group[]         @relation("GroupCreator")
+  groupMembers  GroupMember[]
+  notifications Notification[]
+  fitnessLogs   FitnessLog[]
+  dietPlans     DietPlan[]
+  invitesSent   Invite[]        @relation("InviteSender")
+}
+
+model Invite {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  groupId   String?
+  group     Group?   @relation(fields: [groupId], references: [id])
+  invitedBy String
+  sender    Profile  @relation("InviteSender", fields: [invitedBy], references: [id])
+  status    String   @default("pending") // pending|accepted|expired
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([groupId])
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  userId      String
+  user        Profile   @relation(fields: [userId], references: [id])
+  title       String
+  description String?
+  status      String    @default("pending") // pending|in_progress|done
+  priority    String    @default("medium") // low|medium|high
+  dueDate     DateTime?
+  projectId   String?
+  project     Project?  @relation(fields: [projectId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([projectId])
+}
+
+model Category {
+  id     String @id @default(cuid())
+  userId String
+  user   Profile @relation(fields: [userId], references: [id])
+  name   String
+  type   String // income|expense
+
+  transactions Transaction[]
+
+  @@index([userId])
+}
+
+model Transaction {
+  id         String    @id @default(cuid())
+  userId     String
+  user       Profile   @relation(fields: [userId], references: [id])
+  type       String // income|expense
+  amount     Float
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id])
+  date       DateTime
+  note       String?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+  @@index([date])
+}
+
+model Group {
+  id        String   @id @default(cuid())
+  name      String
+  createdBy String
+  creator   Profile  @relation("GroupCreator", fields: [createdBy], references: [id])
+  createdAt DateTime @default(now())
+
+  members  GroupMember[]
+  projects Project[]
+  invites  Invite[]
+}
+
+model GroupMember {
+  id      String  @id @default(cuid())
+  groupId String
+  group   Group   @relation(fields: [groupId], references: [id])
+  userId  String
+  user    Profile @relation(fields: [userId], references: [id])
+  role    String  @default("member") // owner|admin|member
+
+  @@unique([groupId, userId])
+  @@index([userId])
+}
+
+model Project {
+  id        String   @id @default(cuid())
+  groupId   String
+  group     Group    @relation(fields: [groupId], references: [id])
+  name      String
+  progress  Int      @default(0) // 0-100
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tasks Task[]
+
+  @@index([groupId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      Profile  @relation(fields: [userId], references: [id])
+  type      String // task_due|task_overdue|expense_high|goal_reached|project_update|routine_reminder
+  message   String
+  read      Boolean  @default(false)
+  metadata  String? // JSON.stringify de contexto extra (entityId, etc.)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([read])
+}
+
+model FitnessLog {
+  id                String   @id @default(cuid())
+  userId            String
+  user              Profile  @relation(fields: [userId], references: [id])
+  date              DateTime
+  weightKg          Float?
+  measurements      String? // JSON: {chest, waist, hips, ...}
+  routineCompliance Int? // 0-100 %
+  createdAt         DateTime @default(now())
+
+  @@index([userId])
+  @@index([date])
+}
+
+model DietPlan {
+  id             String   @id @default(cuid())
+  userId         String
+  user           Profile  @relation(fields: [userId], references: [id])
+  ageYears       Int
+  sex            String // male|female
+  heightCm       Float
+  weightKg       Float
+  activityLevel  String // sedentary|light|moderate|active|very_active
+  goal           String // lose|maintain|gain
+  bmr            Float // resultado Mifflin-St Jeor
+  tdee           Float // gasto total diario estimado
+  targetCalories Float
+  generatedPlan  String? // JSON con macros sugeridos (placeholder)
+  createdAt      DateTime @default(now())
+
+  @@index([userId])
+}
