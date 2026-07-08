@@ -15,12 +15,6 @@ export const env = {
   jwtRefreshSecret: required("JWT_REFRESH_SECRET"),
   highExpenseThreshold: Number(process.env.HIGH_EXPENSE_THRESHOLD ?? 500),
   n8nWebhookUrl: process.env.N8N_WEBHOOK_URL ?? "",
-  // Lista de orígenes permitidos separados por coma. Ej:
-  //   CORS_ORIGIN="https://mi-web.easypanel.host,http://localhost:5173"
-  corsOrigins: (process.env.CORS_ORIGIN ?? "http://localhost:5173")
-    .split(",")
-    .map((o) => o.trim())
-    .filter(Boolean),
   ownerEmail: process.env.OWNER_EMAIL ?? "",
   ownerName: process.env.OWNER_NAME ?? "Owner",
   ownerPassword: process.env.OWNER_PASSWORD ?? "",

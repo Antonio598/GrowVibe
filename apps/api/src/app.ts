@@ -20,17 +20,12 @@ export function createApp() {
   // política por defecto de helmet puede bloquear el SPA. Para un despliegue
   // personal el resto de cabeceras de helmet es suficiente.
   app.use(helmet({ contentSecurityPolicy: false }));
-  app.use(
-    cors({
-      origin: (origin, callback) => {
-        // Permite requests sin Origin (curl, health checks, apps móviles
-        // nativas) y los orígenes explícitamente listados en CORS_ORIGIN.
-        // Con el frontend servido desde el mismo origen, CORS casi no aplica.
-        if (!origin || env.corsOrigins.includes(origin)) return callback(null, true);
-        callback(new Error("Origen no permitido por CORS"));
-      },
-    }),
-  );
+  // CORS permisivo (refleja el origen). El frontend se sirve desde el mismo
+  // origen que la API y la auth es por token Bearer (no cookies), así que
+  // CORS no es una barrera de seguridad aquí. Importante: nunca lanzar un
+  // Error en el callback de origin -> devolvería 500 incluso para assets
+  // estáticos que el navegador pide con header Origin (atributo crossorigin).
+  app.use(cors());
   app.use(express.json());
 
   app.use("/api", apiRouter);
