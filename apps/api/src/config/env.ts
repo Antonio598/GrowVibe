@@ -1,9 +1,11 @@
 import "dotenv/config";
 
+const missing: string[] = [];
+
 function required(name: string, fallback?: string): string {
   const value = process.env[name] ?? fallback;
-  if (!value) throw new Error(`Missing required env var: ${name}`);
-  return value;
+  if (!value) missing.push(name);
+  return value ?? "";
 }
 
 export const env = {
@@ -18,3 +20,11 @@ export const env = {
   ownerName: process.env.OWNER_NAME ?? "Owner",
   ownerPassword: process.env.OWNER_PASSWORD ?? "",
 };
+
+if (missing.length > 0) {
+  console.error(
+    `\n❌ Faltan variables de entorno requeridas: ${missing.join(", ")}.\n` +
+      `Configúralas en Easypanel (App > Environment) y volvé a desplegar.\n`,
+  );
+  process.exit(1);
+}

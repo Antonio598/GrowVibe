@@ -4,7 +4,13 @@
 // (metadata, measurements, generatedPlan) a `Json` nativo.
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  // "native" cubre el entorno de desarrollo (Windows/Mac/Linux glibc);
+  // linux-musl-openssl-3.0.x es el motor que corre dentro de node:*-alpine
+  // (Docker). Sin esto, "prisma generate" puede no empaquetar el binario
+  // correcto para el contenedor y el motor falla al cargar en runtime
+  // (aunque el build haya sido exitoso).
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
