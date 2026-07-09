@@ -7,6 +7,7 @@ import { projectsRouter } from "../modules/projects/projects.controller";
 import { notificationsRouter } from "../modules/notifications/notifications.controller";
 import { fitnessRouter } from "../modules/fitness/fitness.controller";
 import { runNotificationChecks } from "../services/notification-jobs.service";
+import { materializeDueRecurring } from "../modules/recurring/recurring.service";
 import { asyncHandler } from "../utils/async-handler";
 import { ok } from "../utils/response";
 
@@ -29,6 +30,7 @@ apiRouter.post(
   "/internal/run-notification-check",
   asyncHandler(async (_req, res) => {
     const result = await runNotificationChecks();
-    return ok(res, result);
+    const recurringCreated = await materializeDueRecurring();
+    return ok(res, { ...result, recurringCreated });
   }),
 );

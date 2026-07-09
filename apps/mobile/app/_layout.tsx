@@ -62,6 +62,7 @@ function RootLayoutNav() {
         <Stack.Screen name="accept-invite" options={{ presentation: 'modal', title: 'Aceptar invitación' }} />
         <Stack.Screen name="group/[id]" options={{ title: 'Grupo' }} />
         <Stack.Screen name="project/[id]" options={{ title: 'Proyecto' }} />
+        <Stack.Screen name="finance-more" options={{ title: 'Presupuestos y metas' }} />
       </Stack>
     </ThemeProvider>
   );

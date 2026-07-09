@@ -6,6 +6,7 @@ import type {
   NotificationType,
   ProjectStatus,
   ProjectType,
+  RecurrenceInterval,
   Sex,
   TaskPriority,
   TaskStatus,
@@ -55,6 +56,40 @@ export interface Transaction {
   categoryId: string | null;
   date: string;
   note: string | null;
+  createdAt: string;
+}
+
+export interface Budget {
+  id: string;
+  userId: string;
+  categoryId: string | null;
+  categoryName?: string | null;
+  amount: number;
+  spent: number; // gastado del mes en curso (calculado por el backend)
+  createdAt: string;
+}
+
+export interface SavingsGoal {
+  id: string;
+  userId: string;
+  name: string;
+  targetAmount: number;
+  currentAmount: number;
+  dueDate: string | null;
+  reachedAt: string | null;
+  createdAt: string;
+}
+
+export interface RecurringTransaction {
+  id: string;
+  userId: string;
+  type: TransactionType;
+  amount: number;
+  categoryId: string | null;
+  note: string | null;
+  interval: RecurrenceInterval;
+  nextRun: string;
+  active: boolean;
   createdAt: string;
 }
 

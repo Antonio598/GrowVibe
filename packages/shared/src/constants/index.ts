@@ -35,6 +35,9 @@ export type ProjectType = (typeof ProjectType)[number];
 export const DeliverableStatus = ["pending", "delivered"] as const;
 export type DeliverableStatus = (typeof DeliverableStatus)[number];
 
+export const RecurrenceInterval = ["daily", "weekly", "monthly"] as const;
+export type RecurrenceInterval = (typeof RecurrenceInterval)[number];
+
 export const ActivityLevel = [
   "sedentary",
   "light",

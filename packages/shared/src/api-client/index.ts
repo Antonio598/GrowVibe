@@ -1,6 +1,7 @@
 import { HttpClient, type ApiClientConfig } from "./http";
 import type {
   AuthSession,
+  Budget,
   Category,
   Deliverable,
   DietPlan,
@@ -13,6 +14,8 @@ import type {
   Profile,
   Project,
   ProjectComment,
+  RecurringTransaction,
+  SavingsGoal,
   Task,
   Transaction,
   WorkSession,
@@ -53,6 +56,25 @@ export function createApiClient(config: ApiClientConfig) {
         http.patch<Transaction>(`/api/finance/transactions/${id}`, data),
       deleteTransaction: (id: string) => http.delete<void>(`/api/finance/transactions/${id}`),
       summary: (query = "") => http.get<FinanceSummary>(`/api/finance/summary${query}`),
+      // Presupuestos
+      budgets: () => http.get<Budget[]>("/api/finance/budgets"),
+      createBudget: (data: Partial<Budget>) => http.post<Budget>("/api/finance/budgets", data),
+      updateBudget: (id: string, data: Partial<Budget>) => http.patch<Budget>(`/api/finance/budgets/${id}`, data),
+      deleteBudget: (id: string) => http.delete<void>(`/api/finance/budgets/${id}`),
+      // Metas de ahorro
+      goals: () => http.get<SavingsGoal[]>("/api/finance/goals"),
+      createGoal: (data: Partial<SavingsGoal>) => http.post<SavingsGoal>("/api/finance/goals", data),
+      updateGoal: (id: string, data: Partial<SavingsGoal>) => http.patch<SavingsGoal>(`/api/finance/goals/${id}`, data),
+      contributeGoal: (id: string, amount: number) =>
+        http.post<SavingsGoal>(`/api/finance/goals/${id}/contribute`, { amount }),
+      deleteGoal: (id: string) => http.delete<void>(`/api/finance/goals/${id}`),
+      // Transacciones recurrentes
+      recurring: () => http.get<RecurringTransaction[]>("/api/finance/recurring"),
+      createRecurring: (data: Partial<RecurringTransaction>) =>
+        http.post<RecurringTransaction>("/api/finance/recurring", data),
+      updateRecurring: (id: string, data: Partial<RecurringTransaction>) =>
+        http.patch<RecurringTransaction>(`/api/finance/recurring/${id}`, data),
+      deleteRecurring: (id: string) => http.delete<void>(`/api/finance/recurring/${id}`),
     },
     groups: {
       list: () => http.get<Group[]>("/api/groups"),

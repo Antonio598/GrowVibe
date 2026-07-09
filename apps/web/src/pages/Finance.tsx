@@ -1,10 +1,10 @@
 import { FormEvent, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, Wallet, Tag } from "lucide-react";
+import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, Wallet, Tag, Receipt, PiggyBank, Target, Repeat } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { api } from "../lib/apiClient";
-import { TransactionType, type Category, type Transaction } from "shared";
+import { type Category, type Transaction } from "shared";
 import {
   Button,
   IconButton,
@@ -18,8 +18,12 @@ import {
   Badge,
   EmptyState,
   PageHeader,
+  Tabs,
 } from "../components/ui";
 import { money, moneyExact, shortDate, forDateInput, dateInputToIso } from "../lib/format";
+import { BudgetsPanel } from "../components/finance/BudgetsPanel";
+import { GoalsPanel } from "../components/finance/GoalsPanel";
+import { RecurringPanel } from "../components/finance/RecurringPanel";
 
 const CHART_COLORS = ["#15A06B", "#F0653E", "#8FBD2E", "#E8A93B", "#0C6B47", "#5B6B63"];
 
@@ -32,6 +36,7 @@ export function Finance() {
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [deleting, setDeleting] = useState<Transaction | null>(null);
   const [showCats, setShowCats] = useState(false);
+  const [tab, setTab] = useState<"movements" | "budgets" | "goals" | "recurring">("movements");
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["finance"] });
 
@@ -64,6 +69,24 @@ export function Finance() {
         <StatTile label="Balance" value={money(summary?.balance ?? 0)} accent="lime" icon={<Wallet size={18} />} />
       </div>
 
+      <div className="mb-5">
+        <Tabs
+          active={tab}
+          onChange={setTab}
+          tabs={[
+            { id: "movements", label: "Movimientos", icon: <Receipt size={15} /> },
+            { id: "budgets", label: "Presupuestos", icon: <PiggyBank size={15} /> },
+            { id: "goals", label: "Metas", icon: <Target size={15} /> },
+            { id: "recurring", label: "Recurrentes", icon: <Repeat size={15} /> },
+          ]}
+        />
+      </div>
+
+      {tab === "budgets" && <BudgetsPanel />}
+      {tab === "goals" && <GoalsPanel />}
+      {tab === "recurring" && <RecurringPanel />}
+
+      {tab === "movements" && (
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <NewTransactionForm categories={categories ?? []} onCreated={invalidate} />
@@ -123,6 +146,7 @@ export function Finance() {
           )}
         </Card>
       </div>
+      )}
 
       {editing && <EditTransactionModal tx={editing} categories={categories ?? []} onClose={() => setEditing(null)} onSaved={invalidate} />}
       {showCats && <CategoriesModal categories={categories ?? []} onClose={() => setShowCats(false)} onChanged={invalidate} />}

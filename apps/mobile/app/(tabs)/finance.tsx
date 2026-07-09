@@ -2,6 +2,7 @@ import { useState } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { api } from "../../src/lib/apiClient";
 import type { Transaction } from "shared";
 import { theme } from "../../constants/theme";
@@ -12,6 +13,7 @@ const money = (n: number) => n.toLocaleString("es-MX", { style: "currency", curr
 
 export default function FinanceScreen() {
   const qc = useQueryClient();
+  const router = useRouter();
   const { data: transactions } = useQuery({ queryKey: ["finance", "transactions"], queryFn: () => api.finance.transactions() });
   const { data: summary } = useQuery({ queryKey: ["finance", "summary"], queryFn: () => api.finance.summary() });
   const [type, setType] = useState<"income" | "expense">("expense");
@@ -31,6 +33,11 @@ export default function FinanceScreen() {
         <View style={styles.sumCard}><Text style={styles.sumLabel}>Gastos</Text><Text style={[styles.sumVal, { color: c.coral }]}>{money(summary?.totalExpense ?? 0)}</Text></View>
         <View style={styles.sumCard}><Text style={styles.sumLabel}>Balance</Text><Text style={styles.sumVal}>{money(summary?.balance ?? 0)}</Text></View>
       </View>
+      <Pressable style={styles.moreBtn} onPress={() => router.push("/finance-more")}>
+        <Ionicons name="pie-chart-outline" size={16} color={c.primaryDark} />
+        <Text style={styles.moreText}>Presupuestos y metas</Text>
+        <Ionicons name="chevron-forward" size={16} color={c.primaryDark} />
+      </Pressable>
       <View style={styles.addRow}>
         <Pressable onPress={() => setType(type === "expense" ? "income" : "expense")} style={[styles.typeBtn, { backgroundColor: type === "expense" ? c.coralSoft : c.primarySoft }]}>
           <Text style={{ color: type === "expense" ? c.coral : c.primaryDark, fontWeight: "600", fontSize: 13 }}>{type === "expense" ? "Gasto" : "Ingreso"}</Text>
@@ -64,6 +71,8 @@ export default function FinanceScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: c.canvas, padding: 16, gap: 12 },
   summary: { flexDirection: "row", gap: 8 },
+  moreBtn: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: c.primarySoft, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12 },
+  moreText: { flex: 1, fontSize: 14, fontWeight: "600", color: c.primaryDark },
   sumCard: { flex: 1, backgroundColor: c.surface, borderRadius: 14, borderWidth: 1, borderColor: c.line, padding: 12 },
   sumLabel: { fontSize: 11, color: c.muted },
   sumVal: { fontSize: 15, fontWeight: "700", color: c.ink, marginTop: 2 },

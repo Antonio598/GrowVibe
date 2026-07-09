@@ -10,9 +10,17 @@ import {
   updateTransactionSchema,
 } from "./finance.schema";
 import * as financeService from "./finance.service";
+import { budgetsRouter } from "../budgets/budgets.controller";
+import { goalsRouter } from "../goals/goals.controller";
+import { recurringRouter } from "../recurring/recurring.controller";
 
 export const financeRouter = Router();
 financeRouter.use(authenticate);
+
+// Submódulos de finanzas avanzadas (heredan authenticate).
+financeRouter.use("/budgets", budgetsRouter);
+financeRouter.use("/goals", goalsRouter);
+financeRouter.use("/recurring", recurringRouter);
 
 financeRouter.get(
   "/categories",

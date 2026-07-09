@@ -39,6 +39,9 @@ model Profile {
   workSessions        WorkSession[]
   projectComments     ProjectComment[]
   deliverablesCreated Deliverable[]    @relation("DeliverableCreator")
+  budgets             Budget[]
+  savingsGoals        SavingsGoal[]
+  recurringTxns       RecurringTransaction[]
 }
 
 model Invite {
@@ -85,6 +88,7 @@ model Category {
   type   String // income|expense
 
   transactions Transaction[]
+  budgets      Budget[]
 
   @@index([userId])
 }
@@ -243,4 +247,56 @@ model DietPlan {
   createdAt      DateTime @default(now())
 
   @@index([userId])
+}
+
+// Presupuesto mensual por categoría (o general si categoryId es null).
+// El gasto se calcula contra las transacciones del mes en curso.
+model Budget {
+  id         String    @id @default(cuid())
+  userId     String
+  user       Profile   @relation(fields: [userId], references: [id])
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  amount     Float // límite mensual
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+// Meta de ahorro con aportes acumulados. Al alcanzar el objetivo se dispara
+// la notificación goal_reached (una sola vez, marcada con reachedAt).
+model SavingsGoal {
+  id            String    @id @default(cuid())
+  userId        String
+  user          Profile   @relation(fields: [userId], references: [id])
+  name          String
+  targetAmount  Float
+  currentAmount Float     @default(0)
+  dueDate       DateTime?
+  reachedAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+// Plantilla de transacción recurrente. Un cron materializa una Transaction
+// real cada vez que nextRun llega, y avanza nextRun según el intervalo.
+model RecurringTransaction {
+  id         String   @id @default(cuid())
+  userId     String
+  user       Profile  @relation(fields: [userId], references: [id])
+  type       String // income|expense
+  amount     Float
+  categoryId String?
+  note       String?
+  interval   String // daily|weekly|monthly
+  nextRun    DateTime
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId])
+  @@index([nextRun])
 }
