@@ -67,12 +67,40 @@ async function checkFitnessReminders() {
   return count;
 }
 
+// Entregas pendientes que vencen dentro de las próximas 24h → avisar a los
+// miembros del grupo del proyecto.
+async function checkDeliverablesDue() {
+  const now = new Date();
+  const soon = new Date(now.getTime() + DUE_SOON_WINDOW_MS);
+
+  const deliverables = await prisma.deliverable.findMany({
+    where: { status: "pending", dueDate: { gte: now, lte: soon } },
+    include: { project: { select: { name: true, groupId: true } } },
+  });
+
+  let count = 0;
+  for (const d of deliverables) {
+    const members = await prisma.groupMember.findMany({ where: { groupId: d.project.groupId } });
+    for (const m of members) {
+      await notify({
+        userId: m.userId,
+        type: "deliverable_due",
+        message: `La entrega "${d.title}" de "${d.project.name}" vence pronto`,
+        metadata: { deliverableId: d.id, projectId: d.projectId },
+      });
+      count++;
+    }
+  }
+  return count;
+}
+
 export async function runNotificationChecks() {
-  const [dueSoon, overdue, fitnessReminders] = await Promise.all([
+  const [dueSoon, overdue, fitnessReminders, deliverablesDue] = await Promise.all([
     checkTaskDueSoon(),
     checkTaskOverdue(),
     checkFitnessReminders(),
+    checkDeliverablesDue(),
   ]);
 
-  return { dueSoon, overdue, fitnessReminders };
+  return { dueSoon, overdue, fitnessReminders, deliverablesDue };
 }

@@ -1,8 +1,11 @@
 import type {
   ActivityLevel,
+  DeliverableStatus,
   DietGoal,
   GroupRole,
   NotificationType,
+  ProjectStatus,
+  ProjectType,
   Sex,
   TaskPriority,
   TaskStatus,
@@ -25,6 +28,8 @@ export interface AuthSession {
 export interface Task {
   id: string;
   userId: string;
+  assigneeId: string | null;
+  assigneeName?: string | null;
   title: string;
   description: string | null;
   status: TaskStatus;
@@ -82,9 +87,47 @@ export interface Project {
   id: string;
   groupId: string;
   name: string;
+  description: string | null;
+  status: ProjectStatus;
+  type: ProjectType;
   progress: number;
+  startDate: string | null;
+  dueDate: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface Deliverable {
+  id: string;
+  projectId: string;
+  title: string;
+  description: string | null;
+  status: DeliverableStatus;
+  dueDate: string | null;
+  deliveredAt: string | null;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WorkSession {
+  id: string;
+  projectId: string;
+  userId: string;
+  userName?: string;
+  startedAt: string;
+  endedAt: string | null;
+  note: string | null;
+  createdAt: string;
+}
+
+export interface ProjectComment {
+  id: string;
+  projectId: string;
+  userId: string;
+  userName?: string;
+  body: string;
+  createdAt: string;
 }
 
 export interface Notification {

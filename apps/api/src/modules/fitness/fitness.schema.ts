@@ -2,11 +2,13 @@ import { z } from "zod";
 import { ActivityLevel, DietGoal, Sex } from "shared";
 
 export const createFitnessLogSchema = z.object({
-  date: z.string().datetime(),
+  date: z.string().datetime().optional(),
   weightKg: z.number().positive().optional(),
   measurements: z.record(z.string(), z.number()).optional(),
   routineCompliance: z.number().min(0).max(100).optional(),
 });
+
+export const updateFitnessLogSchema = createFitnessLogSchema;
 
 export const createDietPlanSchema = z.object({
   ageYears: z.number().int().positive(),

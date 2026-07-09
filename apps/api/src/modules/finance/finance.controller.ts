@@ -3,7 +3,12 @@ import { authenticate } from "../../middleware/auth.middleware";
 import { validateBody } from "../../middleware/validate";
 import { asyncHandler } from "../../utils/async-handler";
 import { ok } from "../../utils/response";
-import { createCategorySchema, createTransactionSchema } from "./finance.schema";
+import {
+  createCategorySchema,
+  createTransactionSchema,
+  updateCategorySchema,
+  updateTransactionSchema,
+} from "./finance.schema";
 import * as financeService from "./finance.service";
 
 export const financeRouter = Router();
@@ -24,6 +29,23 @@ financeRouter.post(
   }),
 );
 
+financeRouter.patch(
+  "/categories/:id",
+  validateBody(updateCategorySchema),
+  asyncHandler(async (req, res) => {
+    const category = await financeService.updateCategory(req.user!.userId, req.params.id, req.body);
+    return ok(res, category);
+  }),
+);
+
+financeRouter.delete(
+  "/categories/:id",
+  asyncHandler(async (req, res) => {
+    await financeService.deleteCategory(req.user!.userId, req.params.id);
+    return ok(res, null);
+  }),
+);
+
 financeRouter.get(
   "/transactions",
   asyncHandler(async (req, res) => {
@@ -39,6 +61,23 @@ financeRouter.post(
   asyncHandler(async (req, res) => {
     const transaction = await financeService.createTransaction(req.user!.userId, req.body);
     return ok(res, transaction, 201);
+  }),
+);
+
+financeRouter.patch(
+  "/transactions/:id",
+  validateBody(updateTransactionSchema),
+  asyncHandler(async (req, res) => {
+    const transaction = await financeService.updateTransaction(req.user!.userId, req.params.id, req.body);
+    return ok(res, transaction);
+  }),
+);
+
+financeRouter.delete(
+  "/transactions/:id",
+  asyncHandler(async (req, res) => {
+    await financeService.deleteTransaction(req.user!.userId, req.params.id);
+    return ok(res, null);
   }),
 );
 

@@ -12,8 +12,8 @@ tasksRouter.use(authenticate);
 tasksRouter.get(
   "/",
   asyncHandler(async (req, res) => {
-    const { status, priority, projectId } = req.query as Record<string, string | undefined>;
-    const tasks = await tasksService.listTasks(req.user!.userId, { status, priority, projectId });
+    const { status, priority, projectId, assignee } = req.query as Record<string, string | undefined>;
+    const tasks = await tasksService.listTasks(req.user!.userId, { status, priority, projectId, assignee });
     return ok(res, tasks);
   }),
 );

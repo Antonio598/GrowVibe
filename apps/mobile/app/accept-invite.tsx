@@ -1,14 +1,17 @@
 import { useState } from 'react';
-import { StyleSheet, TextInput, Pressable } from 'react-native';
-import { useRouter } from 'expo-router';
-
-import { Text, View } from '@/components/Themed';
+import { StyleSheet, Text, View } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '../src/store/auth';
+import { theme } from '../constants/theme';
+import { Button, Input } from '../src/components/ui';
+
+const c = theme.colors;
 
 export default function AcceptInviteScreen() {
   const { acceptInvite } = useAuth();
   const router = useRouter();
-  const [token, setToken] = useState('');
+  const params = useLocalSearchParams<{ token?: string }>();
+  const [token, setToken] = useState(params.token ?? '');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -29,29 +32,21 @@ export default function AcceptInviteScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Aceptar invitación</Text>
-      <TextInput style={styles.input} placeholder="Token" value={token} onChangeText={setToken} />
-      <TextInput style={styles.input} placeholder="Nombre" value={name} onChangeText={setName} />
-      <TextInput
-        style={styles.input}
-        placeholder="Contraseña"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
-      {error && <Text style={styles.error}>{error}</Text>}
-      <Pressable style={styles.button} onPress={onSubmit} disabled={loading}>
-        <Text style={styles.buttonText}>{loading ? 'Creando cuenta...' : 'Crear cuenta'}</Text>
-      </Pressable>
+      <Text style={styles.title}>Únete a GrowVibe</Text>
+      <View style={styles.form}>
+        <Input placeholder="Token" value={token} onChangeText={setToken} autoCapitalize="none" />
+        <Input placeholder="Nombre" value={name} onChangeText={setName} />
+        <Input placeholder="Contraseña" secureTextEntry value={password} onChangeText={setPassword} />
+        {error && <Text style={styles.error}>{error}</Text>}
+        <Button title={loading ? 'Creando…' : 'Crear cuenta'} onPress={onSubmit} disabled={loading} />
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 24, gap: 12 },
-  title: { fontSize: 22, fontWeight: '600', marginBottom: 12 },
-  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 12 },
-  button: { backgroundColor: '#111827', borderRadius: 8, padding: 14, alignItems: 'center' },
-  buttonText: { color: '#fff', fontWeight: '600' },
-  error: { color: '#dc2626' },
+  container: { flex: 1, justifyContent: 'center', padding: 24, backgroundColor: c.canvas },
+  title: { fontSize: 24, fontWeight: '700', color: c.ink, marginBottom: 20, textAlign: 'center' },
+  form: { gap: 12 },
+  error: { color: c.coral, fontSize: 13 },
 });

@@ -20,11 +20,34 @@ export function getGroup(groupId: string) {
   return prisma.group.findUnique({ where: { id: groupId } });
 }
 
-export function listMembers(groupId: string) {
-  return prisma.groupMember.findMany({
+export async function listMembers(groupId: string) {
+  const members = await prisma.groupMember.findMany({
     where: { groupId },
     include: { user: { select: { id: true, name: true, email: true } } },
+    orderBy: { role: "asc" },
   });
+  return members.map((m) => ({
+    id: m.id,
+    groupId: m.groupId,
+    userId: m.userId,
+    role: m.role,
+    userName: m.user.name,
+    userEmail: m.user.email,
+  }));
+}
+
+export async function renameGroup(groupId: string, name: string) {
+  const existing = await prisma.group.findUnique({ where: { id: groupId } });
+  if (!existing) throw new NotFoundError("Grupo no encontrado");
+  return prisma.group.update({ where: { id: groupId }, data: { name } });
+}
+
+export async function deleteGroup(groupId: string) {
+  const existing = await prisma.group.findUnique({ where: { id: groupId } });
+  if (!existing) throw new NotFoundError("Grupo no encontrado");
+  // Cascade (schema onDelete) borra members, projects, invites, y en cascada
+  // deliverables/sessions/comments; las tareas quedan con projectId = null.
+  await prisma.group.delete({ where: { id: groupId } });
 }
 
 export async function addMember(groupId: string, userId: string, role = "member") {

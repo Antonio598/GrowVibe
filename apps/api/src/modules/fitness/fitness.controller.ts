@@ -3,7 +3,7 @@ import { authenticate } from "../../middleware/auth.middleware";
 import { validateBody } from "../../middleware/validate";
 import { asyncHandler } from "../../utils/async-handler";
 import { ok } from "../../utils/response";
-import { createDietPlanSchema, createFitnessLogSchema } from "./fitness.schema";
+import { createDietPlanSchema, createFitnessLogSchema, updateFitnessLogSchema } from "./fitness.schema";
 import * as fitnessService from "./fitness.service";
 
 export const fitnessRouter = Router();
@@ -23,6 +23,23 @@ fitnessRouter.post(
   }),
 );
 
+fitnessRouter.patch(
+  "/logs/:id",
+  validateBody(updateFitnessLogSchema),
+  asyncHandler(async (req, res) => {
+    const log = await fitnessService.updateLog(req.user!.userId, req.params.id, req.body);
+    return ok(res, log);
+  }),
+);
+
+fitnessRouter.delete(
+  "/logs/:id",
+  asyncHandler(async (req, res) => {
+    await fitnessService.deleteLog(req.user!.userId, req.params.id);
+    return ok(res, null);
+  }),
+);
+
 fitnessRouter.post(
   "/diet-plans",
   validateBody(createDietPlanSchema),
@@ -30,6 +47,11 @@ fitnessRouter.post(
     const plan = await fitnessService.createDietPlan(req.user!.userId, req.body);
     return ok(res, plan, 201);
   }),
+);
+
+fitnessRouter.get(
+  "/diet-plans",
+  asyncHandler(async (req, res) => ok(res, await fitnessService.listDietPlans(req.user!.userId))),
 );
 
 fitnessRouter.get(

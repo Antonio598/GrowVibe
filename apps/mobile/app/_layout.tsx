@@ -56,10 +56,12 @@ function RootLayoutNav() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
+      <Stack screenOptions={{ headerStyle: { backgroundColor: '#FBFAF7' }, headerShadowVisible: false, headerTintColor: '#17241F', contentStyle: { backgroundColor: '#FBFAF7' } }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="login" options={{ presentation: 'modal', title: 'Iniciar sesión' }} />
         <Stack.Screen name="accept-invite" options={{ presentation: 'modal', title: 'Aceptar invitación' }} />
+        <Stack.Screen name="group/[id]" options={{ title: 'Grupo' }} />
+        <Stack.Screen name="project/[id]" options={{ title: 'Proyecto' }} />
       </Stack>
     </ThemeProvider>
   );

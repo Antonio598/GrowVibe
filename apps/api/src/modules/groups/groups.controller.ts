@@ -4,7 +4,7 @@ import { authorizeGroupMembership } from "../../middleware/authorize-group.middl
 import { validateBody } from "../../middleware/validate";
 import { asyncHandler } from "../../utils/async-handler";
 import { ok } from "../../utils/response";
-import { addMemberSchema, createGroupSchema, updateMemberSchema } from "./groups.schema";
+import { addMemberSchema, createGroupSchema, updateGroupSchema, updateMemberSchema } from "./groups.schema";
 import * as groupsService from "./groups.service";
 
 export const groupsRouter = Router();
@@ -28,6 +28,25 @@ groupsRouter.get(
   "/:id",
   authorizeGroupMembership({ source: "group" }),
   asyncHandler(async (req, res) => ok(res, await groupsService.getGroup(req.params.id))),
+);
+
+groupsRouter.patch(
+  "/:id",
+  authorizeGroupMembership({ source: "group", minRole: "admin" }),
+  validateBody(updateGroupSchema),
+  asyncHandler(async (req, res) => {
+    const group = await groupsService.renameGroup(req.params.id, (req.body as { name: string }).name);
+    return ok(res, group);
+  }),
+);
+
+groupsRouter.delete(
+  "/:id",
+  authorizeGroupMembership({ source: "group", minRole: "owner" }),
+  asyncHandler(async (req, res) => {
+    await groupsService.deleteGroup(req.params.id);
+    return ok(res, null);
+  }),
 );
 
 groupsRouter.get(

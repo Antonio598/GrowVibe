@@ -1,6 +1,7 @@
 import { prisma } from "../../config/database";
 import { env } from "../../config/env";
 import { notify } from "../../services/notification-dispatcher.service";
+import { NotFoundError } from "../../utils/errors";
 
 export function listCategories(userId: string) {
   return prisma.category.findMany({ where: { userId } });
@@ -8,6 +9,24 @@ export function listCategories(userId: string) {
 
 export function createCategory(userId: string, name: string, type: string) {
   return prisma.category.create({ data: { userId, name, type } });
+}
+
+export async function updateCategory(userId: string, id: string, data: { name?: string; type?: string }) {
+  const existing = await prisma.category.findFirst({ where: { id, userId } });
+  if (!existing) throw new NotFoundError("Categoría no encontrada");
+  return prisma.category.update({
+    where: { id },
+    data: {
+      ...(data.name !== undefined ? { name: data.name } : {}),
+      ...(data.type !== undefined ? { type: data.type } : {}),
+    },
+  });
+}
+
+export async function deleteCategory(userId: string, id: string) {
+  const existing = await prisma.category.findFirst({ where: { id, userId } });
+  if (!existing) throw new NotFoundError("Categoría no encontrada");
+  await prisma.category.delete({ where: { id } });
 }
 
 export interface TransactionFilters {
@@ -61,6 +80,31 @@ export async function createTransaction(
   }
 
   return transaction;
+}
+
+export async function updateTransaction(
+  userId: string,
+  id: string,
+  data: { type?: string; amount?: number; categoryId?: string | null; date?: string; note?: string | null },
+) {
+  const existing = await prisma.transaction.findFirst({ where: { id, userId } });
+  if (!existing) throw new NotFoundError("Transacción no encontrada");
+  return prisma.transaction.update({
+    where: { id },
+    data: {
+      ...(data.type !== undefined ? { type: data.type } : {}),
+      ...(data.amount !== undefined ? { amount: data.amount } : {}),
+      ...(data.categoryId !== undefined ? { categoryId: data.categoryId } : {}),
+      ...(data.date !== undefined ? { date: new Date(data.date) } : {}),
+      ...(data.note !== undefined ? { note: data.note } : {}),
+    },
+  });
+}
+
+export async function deleteTransaction(userId: string, id: string) {
+  const existing = await prisma.transaction.findFirst({ where: { id, userId } });
+  if (!existing) throw new NotFoundError("Transacción no encontrada");
+  await prisma.transaction.delete({ where: { id } });
 }
 
 export async function getSummary(userId: string, from?: string, to?: string) {

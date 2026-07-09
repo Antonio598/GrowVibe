@@ -20,8 +20,20 @@ export const NotificationType = [
   "goal_reached",
   "project_update",
   "routine_reminder",
+  "task_assigned",
+  "comment_added",
+  "deliverable_due",
 ] as const;
 export type NotificationType = (typeof NotificationType)[number];
+
+export const ProjectStatus = ["active", "paused", "done"] as const;
+export type ProjectStatus = (typeof ProjectStatus)[number];
+
+export const ProjectType = ["ongoing", "dated"] as const;
+export type ProjectType = (typeof ProjectType)[number];
+
+export const DeliverableStatus = ["pending", "delivered"] as const;
+export type DeliverableStatus = (typeof DeliverableStatus)[number];
 
 export const ActivityLevel = [
   "sedentary",

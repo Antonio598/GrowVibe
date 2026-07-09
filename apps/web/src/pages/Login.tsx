@@ -1,6 +1,8 @@
 import { FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Sprout } from "lucide-react";
 import { useAuth } from "../store/auth";
+import { Button, Field, Input } from "../components/ui";
 
 export function Login() {
   const { login } = useAuth();
@@ -25,34 +27,30 @@ export function Login() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50">
-      <form onSubmit={onSubmit} className="w-full max-w-sm rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-        <h1 className="mb-4 text-xl font-semibold text-slate-900">CRM Personal</h1>
-        <label className="mb-1 block text-sm font-medium text-slate-700">Email</label>
-        <input
-          type="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="mb-3 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-        />
-        <label className="mb-1 block text-sm font-medium text-slate-700">Contraseña</label>
-        <input
-          type="password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="mb-4 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-        />
-        {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
-        >
-          {loading ? "Ingresando..." : "Ingresar"}
-        </button>
-      </form>
+    <div className="flex min-h-screen items-center justify-center bg-canvas p-4">
+      <div className="w-full max-w-sm">
+        <div className="mb-6 flex flex-col items-center gap-3 text-center">
+          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-lime text-white shadow-card">
+            <Sprout size={28} />
+          </span>
+          <div>
+            <h1 className="text-2xl font-semibold text-ink">GrowVibe</h1>
+            <p className="text-sm text-muted">Tu vida, en orden y creciendo.</p>
+          </div>
+        </div>
+        <form onSubmit={onSubmit} className="space-y-4 rounded-2xl border border-line bg-surface p-6 shadow-card">
+          <Field label="Email">
+            <Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="tu@email.com" />
+          </Field>
+          <Field label="Contraseña">
+            <Input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
+          </Field>
+          {error && <p className="text-sm text-coral">{error}</p>}
+          <Button type="submit" size="lg" disabled={loading} className="w-full">
+            {loading ? "Ingresando..." : "Ingresar"}
+          </Button>
+        </form>
+      </div>
     </div>
   );
 }

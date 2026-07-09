@@ -1,99 +1,282 @@
 import { FormEvent, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, Wallet, Tag } from "lucide-react";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { api } from "../lib/apiClient";
-import type { TransactionType } from "shared";
+import { TransactionType, type Category, type Transaction } from "shared";
+import {
+  Button,
+  IconButton,
+  Card,
+  StatTile,
+  Field,
+  Input,
+  Select,
+  Modal,
+  ConfirmDialog,
+  Badge,
+  EmptyState,
+  PageHeader,
+} from "../components/ui";
+import { money, moneyExact, shortDate, forDateInput, dateInputToIso } from "../lib/format";
+
+const CHART_COLORS = ["#15A06B", "#F0653E", "#8FBD2E", "#E8A93B", "#0C6B47", "#5B6B63"];
 
 export function Finance() {
-  const queryClient = useQueryClient();
+  const qc = useQueryClient();
   const { data: transactions } = useQuery({ queryKey: ["finance", "transactions"], queryFn: () => api.finance.transactions() });
   const { data: summary } = useQuery({ queryKey: ["finance", "summary"], queryFn: () => api.finance.summary() });
+  const { data: categories } = useQuery({ queryKey: ["finance", "categories"], queryFn: () => api.finance.categories() });
 
-  const [type, setType] = useState<TransactionType>("expense");
+  const [editing, setEditing] = useState<Transaction | null>(null);
+  const [deleting, setDeleting] = useState<Transaction | null>(null);
+  const [showCats, setShowCats] = useState(false);
+
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["finance"] });
+
+  const remove = useMutation({
+    mutationFn: (id: string) => api.finance.deleteTransaction(id),
+    onSuccess: () => {
+      setDeleting(null);
+      invalidate();
+      toast.success("Movimiento borrado");
+    },
+  });
+
+  const expenseData = (summary?.byCategory ?? [])
+    .filter((c) => c.total > 0)
+    .map((c) => ({ name: c.categoryName, value: c.total }));
+
+  const catName = (id: string | null) => categories?.find((c) => c.id === id)?.name;
+
+  return (
+    <div>
+      <PageHeader
+        title="Finanzas"
+        subtitle="Controla tus ingresos y gastos del mes."
+        action={<Button variant="secondary" icon={<Tag size={16} />} onClick={() => setShowCats(true)}>Categorías</Button>}
+      />
+
+      <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatTile label="Ingresos" value={money(summary?.totalIncome ?? 0)} accent="primary" icon={<TrendingUp size={18} />} />
+        <StatTile label="Gastos" value={money(summary?.totalExpense ?? 0)} accent="coral" icon={<TrendingDown size={18} />} />
+        <StatTile label="Balance" value={money(summary?.balance ?? 0)} accent="lime" icon={<Wallet size={18} />} />
+      </div>
+
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <NewTransactionForm categories={categories ?? []} onCreated={invalidate} />
+          <div className="mt-4 space-y-2">
+            {(transactions ?? []).length === 0 ? (
+              <EmptyState icon={<Wallet size={22} />} title="Sin movimientos" hint="Registra tu primer ingreso o gasto arriba." />
+            ) : (
+              (transactions ?? []).map((t) => (
+                <Card key={t.id} className="flex items-center gap-3 px-4 py-3">
+                  <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${t.type === "income" ? "bg-primary-soft text-primary-dark" : "bg-coral-soft text-coral"}`}>
+                    {t.type === "income" ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium text-ink">{t.note || (t.type === "income" ? "Ingreso" : "Gasto")}</p>
+                    <div className="mt-0.5 flex items-center gap-2 text-xs text-muted">
+                      <span>{shortDate(t.date)}</span>
+                      {catName(t.categoryId) && <Badge tone="neutral">{catName(t.categoryId)}</Badge>}
+                    </div>
+                  </div>
+                  <span className={`tabular font-semibold ${t.type === "income" ? "text-primary-dark" : "text-coral"}`}>
+                    {t.type === "income" ? "+" : "−"}{moneyExact(t.amount)}
+                  </span>
+                  <div className="flex shrink-0">
+                    <IconButton label="Editar" onClick={() => setEditing(t)}><Pencil size={16} /></IconButton>
+                    <IconButton label="Borrar" variant="danger" onClick={() => setDeleting(t)}><Trash2 size={16} /></IconButton>
+                  </div>
+                </Card>
+              ))
+            )}
+          </div>
+        </div>
+
+        <Card className="h-fit p-5">
+          <h3 className="mb-4 text-sm font-medium text-muted">Distribución de gastos</h3>
+          {expenseData.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted">Sin datos aún.</p>
+          ) : (
+            <>
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie data={expenseData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={80} paddingAngle={2}>
+                    {expenseData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip formatter={(v) => moneyExact(Number(v))} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="mt-3 space-y-1.5">
+                {expenseData.map((d, i) => (
+                  <div key={d.name} className="flex items-center gap-2 text-sm">
+                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
+                    <span className="flex-1 truncate text-muted">{d.name}</span>
+                    <span className="tabular font-medium text-ink">{money(d.value)}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </Card>
+      </div>
+
+      {editing && <EditTransactionModal tx={editing} categories={categories ?? []} onClose={() => setEditing(null)} onSaved={invalidate} />}
+      {showCats && <CategoriesModal categories={categories ?? []} onClose={() => setShowCats(false)} onChanged={invalidate} />}
+      <ConfirmDialog
+        open={!!deleting}
+        onClose={() => setDeleting(null)}
+        onConfirm={() => deleting && remove.mutate(deleting.id)}
+        title="Borrar movimiento"
+        message="¿Seguro que quieres borrar este movimiento?"
+        loading={remove.isPending}
+      />
+    </div>
+  );
+}
+
+function NewTransactionForm({ categories, onCreated }: { categories: Category[]; onCreated: () => void }) {
+  const [type, setType] = useState<"income" | "expense">("expense");
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
+  const [categoryId, setCategoryId] = useState("");
+  const [date, setDate] = useState(forDateInput(new Date().toISOString()));
 
-  const createTransaction = useMutation({
+  const create = useMutation({
     mutationFn: () =>
       api.finance.createTransaction({
         type,
         amount: Number(amount),
-        date: new Date().toISOString(),
-        note,
-      }),
+        note: note || undefined,
+        categoryId: categoryId || null,
+        date: dateInputToIso(date),
+      } as Partial<Transaction>),
     onSuccess: () => {
       setAmount("");
       setNote("");
-      queryClient.invalidateQueries({ queryKey: ["finance"] });
+      onCreated();
+      toast.success("Movimiento registrado");
     },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Error"),
   });
 
   function onSubmit(e: FormEvent) {
     e.preventDefault();
-    if (Number(amount) > 0) createTransaction.mutate();
+    if (Number(amount) > 0) create.mutate();
   }
 
+  const options = categories.filter((c) => c.type === type);
+
   return (
-    <div>
-      <h1 className="mb-6 text-2xl font-semibold text-slate-900">Finanzas</h1>
-
-      {summary && (
-        <div className="mb-6 grid grid-cols-3 gap-4">
-          <div className="rounded-lg border border-slate-200 bg-white p-4">
-            <p className="text-xs text-slate-500">Ingresos</p>
-            <p className="text-xl font-semibold text-emerald-600">${summary.totalIncome.toFixed(2)}</p>
-          </div>
-          <div className="rounded-lg border border-slate-200 bg-white p-4">
-            <p className="text-xs text-slate-500">Gastos</p>
-            <p className="text-xl font-semibold text-red-600">${summary.totalExpense.toFixed(2)}</p>
-          </div>
-          <div className="rounded-lg border border-slate-200 bg-white p-4">
-            <p className="text-xs text-slate-500">Balance</p>
-            <p className="text-xl font-semibold">${summary.balance.toFixed(2)}</p>
-          </div>
-        </div>
-      )}
-
-      <form onSubmit={onSubmit} className="mb-6 flex flex-wrap gap-2">
-        <select
-          value={type}
-          onChange={(e) => setType(e.target.value as TransactionType)}
-          className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-        >
+    <Card className="p-4">
+      <form onSubmit={onSubmit} className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Select value={type} onChange={(e) => setType(e.target.value as "income" | "expense")}>
           <option value="expense">Gasto</option>
           <option value="income">Ingreso</option>
-        </select>
-        <input
-          type="number"
-          step="0.01"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          placeholder="Monto"
-          className="w-32 rounded-md border border-slate-300 px-3 py-2 text-sm"
-        />
-        <input
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          placeholder="Nota (opcional)"
-          className="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm"
-        />
-        <button type="submit" className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white">
-          Registrar
-        </button>
+        </Select>
+        <Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Monto" />
+        <Select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+          <option value="">Sin categoría</option>
+          {options.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </Select>
+        <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+        <Input className="col-span-2 sm:col-span-3" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Nota (opcional)" />
+        <Button type="submit" icon={<Plus size={16} />} className="col-span-2 sm:col-span-1">Registrar</Button>
       </form>
+    </Card>
+  );
+}
 
-      <ul className="space-y-2">
-        {transactions?.map((t) => (
-          <li key={t.id} className="flex items-center justify-between rounded-md border border-slate-200 bg-white px-4 py-3">
-            <div>
-              <p className="text-slate-900">{t.note || "(sin nota)"}</p>
-              <p className="text-xs text-slate-500">{new Date(t.date).toLocaleDateString()}</p>
+function EditTransactionModal({ tx, categories, onClose, onSaved }: { tx: Transaction; categories: Category[]; onClose: () => void; onSaved: () => void }) {
+  const [type, setType] = useState(tx.type);
+  const [amount, setAmount] = useState(String(tx.amount));
+  const [note, setNote] = useState(tx.note ?? "");
+  const [categoryId, setCategoryId] = useState(tx.categoryId ?? "");
+  const [date, setDate] = useState(forDateInput(tx.date));
+
+  const save = useMutation({
+    mutationFn: () =>
+      api.finance.updateTransaction(tx.id, {
+        type,
+        amount: Number(amount),
+        note: note || null,
+        categoryId: categoryId || null,
+        date: dateInputToIso(date),
+      } as Partial<Transaction>),
+    onSuccess: () => {
+      onSaved();
+      onClose();
+      toast.success("Movimiento actualizado");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Error"),
+  });
+
+  return (
+    <Modal open onClose={onClose} title="Editar movimiento" footer={<><Button variant="secondary" onClick={onClose}>Cancelar</Button><Button onClick={() => save.mutate()} disabled={save.isPending}>Guardar</Button></>}>
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Tipo">
+            <Select value={type} onChange={(e) => setType(e.target.value as "income" | "expense")}>
+              <option value="expense">Gasto</option>
+              <option value="income">Ingreso</option>
+            </Select>
+          </Field>
+          <Field label="Monto"><Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} /></Field>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Categoría">
+            <Select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+              <option value="">Sin categoría</option>
+              {categories.filter((c) => c.type === type).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </Select>
+          </Field>
+          <Field label="Fecha"><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></Field>
+        </div>
+        <Field label="Nota"><Input value={note} onChange={(e) => setNote(e.target.value)} /></Field>
+      </div>
+    </Modal>
+  );
+}
+
+function CategoriesModal({ categories, onClose, onChanged }: { categories: Category[]; onClose: () => void; onChanged: () => void }) {
+  const [name, setName] = useState("");
+  const [type, setType] = useState<"income" | "expense">("expense");
+
+  const create = useMutation({
+    mutationFn: () => api.finance.createCategory({ name, type } as Partial<Category>),
+    onSuccess: () => { setName(""); onChanged(); toast.success("Categoría creada"); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Error"),
+  });
+  const remove = useMutation({
+    mutationFn: (id: string) => api.finance.deleteCategory(id),
+    onSuccess: () => { onChanged(); toast.success("Categoría borrada"); },
+  });
+
+  return (
+    <Modal open onClose={onClose} title="Categorías">
+      <div className="space-y-4">
+        <form onSubmit={(e) => { e.preventDefault(); if (name.trim()) create.mutate(); }} className="flex gap-2">
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nombre" />
+          <Select value={type} onChange={(e) => setType(e.target.value as "income" | "expense")} className="w-auto">
+            <option value="expense">Gasto</option>
+            <option value="income">Ingreso</option>
+          </Select>
+          <Button type="submit" icon={<Plus size={16} />}>Añadir</Button>
+        </form>
+        <div className="space-y-1.5">
+          {categories.length === 0 && <p className="text-sm text-muted">Aún no tienes categorías.</p>}
+          {categories.map((c) => (
+            <div key={c.id} className="flex items-center gap-2 rounded-xl border border-line px-3 py-2">
+              <Badge tone={c.type === "income" ? "primary" : "coral"}>{c.type === "income" ? "Ingreso" : "Gasto"}</Badge>
+              <span className="flex-1 text-sm text-ink">{c.name}</span>
+              <IconButton label="Borrar" variant="danger" onClick={() => remove.mutate(c.id)}><Trash2 size={15} /></IconButton>
             </div>
-            <p className={t.type === "income" ? "font-medium text-emerald-600" : "font-medium text-red-600"}>
-              {t.type === "income" ? "+" : "-"}${t.amount.toFixed(2)}
-            </p>
-          </li>
-        ))}
-      </ul>
-    </div>
+          ))}
+        </div>
+      </div>
+    </Modal>
   );
 }

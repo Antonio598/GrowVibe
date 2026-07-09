@@ -26,22 +26,28 @@ async function resolveGroupId(req: Request, source: "group" | "project"): Promis
 // Valida que req.user pertenezca al grupo (directamente o vía projectId -> groupId)
 // y opcionalmente cumpla un rol mínimo dentro de ese grupo.
 export function authorizeGroupMembership(options: { source: "group" | "project"; minRole?: GroupRole } = { source: "group" }) {
+  // Envuelto en try/catch: Express 4 no captura rechazos de middleware async,
+  // así que hay que reenviar los errores a next(err) manualmente.
   return async (req: Request, _res: Response, next: NextFunction) => {
-    if (!req.user) throw new UnauthorizedError();
+    try {
+      if (!req.user) throw new UnauthorizedError();
 
-    const groupId = await resolveGroupId(req, options.source);
-    const membership = await prisma.groupMember.findUnique({
-      where: { groupId_userId: { groupId, userId: req.user.userId } },
-    });
+      const groupId = await resolveGroupId(req, options.source);
+      const membership = await prisma.groupMember.findUnique({
+        where: { groupId_userId: { groupId, userId: req.user.userId } },
+      });
 
-    if (!membership) throw new ForbiddenError("No perteneces a este grupo");
+      if (!membership) throw new ForbiddenError("No perteneces a este grupo");
 
-    if (options.minRole && ROLE_RANK[membership.role as GroupRole] < ROLE_RANK[options.minRole]) {
-      throw new ForbiddenError(`Se requiere rol mínimo: ${options.minRole}`);
+      if (options.minRole && ROLE_RANK[membership.role as GroupRole] < ROLE_RANK[options.minRole]) {
+        throw new ForbiddenError(`Se requiere rol mínimo: ${options.minRole}`);
+      }
+
+      req.groupId = groupId;
+      next();
+    } catch (err) {
+      next(err);
     }
-
-    req.groupId = groupId;
-    next();
   };
 }
 
